@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workiva Automation Pipelines - Chain 2</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-purple: #c084fc;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --overlay-bg: rgba(15, 23, 42, 0.85);
+            --sheet-border: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-main);
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            width: 100%;
+            max-width: 1350px;
+        }
+
+        .pipeline-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+
+        .pipeline-header {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: var(--accent-blue);
+        }
+
+        .pipeline-desc {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+
+        /* Animation Canvas Layout */
+        .canvas {
+            background-color: #0b0f19;
+            border-radius: 8px;
+            height: 260px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            border: 1px dashed #475569;
+        }
+
+        .node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+            width: 135px;
+            text-align: center;
+            position: relative;
+            margin-top: 35px;
+            cursor: pointer;
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            background-color: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .node:hover .icon-box {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .node-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        /* Conveyor / Flow Tracks */
+        .track {
+            position: absolute;
+            height: 4px;
+            background-color: #334155;
+            top: calc(50% + 4px);
+            left: 80px;
+            right: 80px;
+            z-index: 1;
+        }
+
+        /* --- ONE-TIME EXPLICIT GREEN SIGNAL --- */
+        .c2-one-time-auth-signal {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            top: 130px;
+            left: 85px;
+            box-shadow: 0 0 10px var(--accent-green);
+            z-index: 4;
+            opacity: 0;
+            animation: c2SignalExactOnce 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation-delay: 2.0s;
+        }
+        @keyframes c2SignalExactOnce {
+            0% { left: 85px; opacity: 0; }
+            5% { left: 85px; opacity: 1; }
+            95% { left: 247px; opacity: 1; }
+            100% { left: 247px; opacity: 0; }
+        }
+
+        /* Moving Asset Packets for Chain 2 */
+        .packet {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            z-index: 3;
+            opacity: 0;
+        }
+
+        /* Chain 2 Constant Sequence Loops */
+        .packet-data1 { animation: moveFile1Sequence 14s infinite linear; top: 104px; }
+        .packet-data2 { animation: moveFile2Sequence 14s infinite linear; top: 136px; }
+        .packet-out { animation: moveOutputSequence 14s infinite linear; background-color: var(--accent-purple); color: #0f172a; font-size: 12px; font-weight: bold; }
+
+        @keyframes moveFile1Sequence {
+            0%, 28.57% { left: 247px; opacity: 0; }
+            28.58% { left: 247px; opacity: 1; }
+            35.71% { left: 409px; opacity: 1; } 
+            35.72%, 48% { left: 409px; opacity: 0; } 
+            48.01% { left: 409px; opacity: 1; }
+            55.14% { left: 571px; opacity: 1; } 
+            55.15%, 68.42% { left: 571px; opacity: 0; } 
+            68.43% { left: 571px; opacity: 1; }
+            74.57% { left: 733px; opacity: 1; } 
+            74.58%, 100% { left: 733px; opacity: 0; } 
+        }
+
+        @keyframes moveFile2Sequence {
+            0%, 28.57% { left: 247px; opacity: 0; }
+            28.58% { left: 247px; opacity: 1; }
+            35.71% { left: 409px; opacity: 1; } 
+            35.72%, 48% { left: 409px; opacity: 0; } 
+            48.01% { left: 409px; opacity: 1; }
+            55.14% { left: 571px; opacity: 1; } 
+            55.15%, 68.42% { left: 571px; opacity: 0; } 
+            68.43% { left: 571px; opacity: 1; }
+            74.57% { left: 733px; opacity: 1; } 
+            74.58%, 100% { left: 733px; opacity: 0; } 
+        }
+
+        @keyframes moveOutputSequence {
+            0%, 74.57% { left: 733px; opacity: 0; transform: scale(0.8); }
+            74.58%, 84.00% { left: 733px; opacity: 0; } 
+            84.01% { left: 733px; opacity: 1; transform: scale(1); }
+            87.00% { left: 895px; opacity: 1; } 
+            87.01%, 95.00% { left: 895px; opacity: 0; } 
+            95.01% { left: 895px; opacity: 1; }
+            100% { left: 1057px; opacity: 1; }
+        }
+
+        /* --- RING PERIMETER ANIMATIONS --- */
+        .auth-inner-icon { z-index: 3; position: relative; }
+
+        .auth-ring-container {
+            position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
+            border-radius: 14px; overflow: hidden; pointer-events: none; z-index: 1;
+        }
+
+        .auth-ring-dots {
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(transparent, var(--accent-blue), transparent 30%);
+        }
+
+        .auth-ring-mask {
+            position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px;
+            background-color: #1e293b; border-radius: 11px;
+        }
+
+        .auth-success-box {
+            position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px;
+            border-radius: 13px; border: 3px solid var(--accent-green); opacity: 0; background: transparent; z-index: 2;
+        }
+
+        /* Chain 2 Ring Timelines */
+        #dots-node1 { animation: runDotsNode1 14s infinite linear; }
+        #success-node1 { animation: successNode1 14s infinite ease-in-out; }
+        #dots-node2 { animation: runDotsNode2 14s infinite linear; }
+        #success-node2 { animation: successNode2 14s infinite ease-in-out; }
+        #dots-node3 { animation: runDotsNode3 14s infinite linear; }
+        #success-node3 { animation: successNode3 14s infinite ease-in-out; }
+        #dots-node4 { animation: runDotsNode4 14s infinite linear; }
+        #success-node4 { animation: successNode4 14s infinite ease-in-out; }
+        #dots-node5 { animation: runDotsNode5 14s infinite linear; }
+        #success-node5 { animation: successNode5 14s infinite ease-in-out; }
+        #dots-node6 { animation: runDotsNode6 14s infinite linear; }
+        #success-node6 { animation: successNode6 14s infinite ease-in-out; }
+        #dots-node7 { animation: runDotsNode7 14s infinite linear; }
+        #success-node7 { animation: successNode7 14s infinite ease-in-out; }
+
+        @keyframes runDotsNode1 { 0% { transform: rotate(0deg); opacity: 1; } 14.28% { transform: rotate(360deg); opacity: 1; } 14.29%, 100% { opacity: 0; } }
+        @keyframes successNode1 { 0%, 14.28% { opacity: 0; } 14.29%, 96% { opacity: 1; } 97.14%, 100% { opacity: 0; } }
+        @keyframes runDotsNode2 { 0%, 14.28% { opacity: 0; transform: rotate(0deg); } 14.29% { opacity: 1; } 28.57% { transform: rotate(360deg); opacity: 1; } 28.58%, 100% { opacity: 0; } }
+        @keyframes successNode2 { 0%, 28.57% { opacity: 0; } 28.58%, 96% { opacity: 1; } 97.14%, 100% { opacity: 0; } }
+        @keyframes runDotsNode3 { 0%, 35.71% { opacity: 0; transform: rotate(0deg); } 35.72% { opacity: 1; } 50.00% { transform: rotate(360deg); opacity: 1; } 50.01%, 100% { opacity: 0; } }
+        @keyframes successNode3 { 0%, 50.00% { opacity: 0; } 50.01%, 96% { opacity: 1; } 97.14%, 100% { opacity: 0; } }
+        @keyframes runDotsNode4 { 0%, 57.14% { opacity: 0; transform: rotate(0deg); } 57.15% { opacity: 1; } 71.42% { transform: rotate(360deg); opacity: 1; } 71.43%, 100% { opacity: 0; } }
+        @keyframes successNode4 { 0%, 71.42% { opacity: 0; } 71.43%, 96% { opacity: 1; } 97.14%, 100% { opacity: 0; } }
+        @keyframes runDotsNode5 { 0%, 74.57% { opacity: 0; transform: rotate(0deg); } 74.58% { opacity: 1; } 84.00% { transform: rotate(360deg); opacity: 1; } 84.01%, 100% { opacity: 0; } }
+        @keyframes successNode5 { 0%, 84.00% { opacity: 0; } 84.01%, 96% { opacity: 1; } 97.14%, 100% { opacity: 0; } }
+        @keyframes runDotsNode6 { 0%, 86.50% { opacity: 0; transform: rotate(0deg); } 86.51% { opacity: 1; } 94.00% { transform: rotate(360deg); opacity: 1; } 94.01%, 100% { opacity: 0; } }
+        @keyframes successNode6 { 0%, 94.00% { opacity: 0; } 94.01%, 96% { opacity: 1; } 97.14%, 100% { opacity: 0; } }
+        @keyframes runDotsNode7 { 0%, 94.50% { opacity: 0; transform: rotate(0deg); } 94.51% { opacity: 1; } 100% { transform: rotate(360deg); opacity: 1; } }
+        @keyframes successNode7 { 0%, 99.9% { opacity: 0; } 100% { opacity: 1; } }
+
+        #chain2-dest-box { animation: targetWipeActive 14s infinite linear; }
+        @keyframes targetWipeActive {
+            0%, 94.00% { background-color: #1e293b; box-shadow: none; }
+            94.01%, 98% { background-color: rgba(192, 132, 252, 0.1); box-shadow: 0 0 15px var(--accent-purple); }
+            100% { background-color: #1e293b; box-shadow: none; }
+        }
+
+        /* --- POPUP WINDOW --- */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--overlay-bg);
+            z-index: 100; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease; backdrop-filter: blur(4px);
+        }
+        .popup-overlay.active { opacity: 1; pointer-events: auto; }
+        .popup-card {
+            background-color: #1e293b; border: 2px solid #334155; border-radius: 16px; width: 92%; max-width: 650px;
+            padding: 24px; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: scale(0.95); transition: transform 0.3s ease, max-width 0.3s ease;
+        }
+        .popup-card.expanded-large { max-width: 1100px; }
+        .popup-overlay.active .popup-card { transform: scale(1); }
+        .popup-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; transition: color 0.2s; }
+        .popup-close:hover { color: var(--text-main); }
+        .popup-title { font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin-top: 0; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .popup-desc { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 0; margin-top: 16px; }
+        .popup-animation-pane { background-color: #0b0f19; border-radius: 8px; min-height: 150px; border: 1px solid #334155; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; margin-top: 10px; padding: 14px; }
+
+        /* --- VALIDATION POPUP STYLES --- */
+        .val-engine-box { width: 100%; display: flex; flex-direction: column; padding: 10px 15px; }
+        .val-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1e293b; font-size: 13px; color: var(--text-muted); opacity: 0; transform: translateY(5px); }
+        .val-row.revealed { opacity: 1; transform: translateY(0); transition: all 0.3s ease-out; }
+        .val-row.active-checking { color: var(--accent-blue); font-weight: 600; }
+        .val-check-mark { color: var(--accent-green); font-weight: bold; opacity: 0; transform: scale(0.5); }
+        .val-check-mark.checked { opacity: 1; transform: scale(1); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .val-divider { height: 1px; background: #475569; margin: 15px 0 10px 0; width: 0%; transition: width 0.5s ease-in-out; }
+        .val-final-equation { display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 16px; font-weight: bold; color: var(--accent-green); opacity: 0; transform: translateY(5px); }
+        .val-final-equation.visible { opacity: 1; transform: translateY(0); transition: all 0.4s ease-out; }
+        .val-big-badge { font-size: 24px; opacity: 0; transform: scale(0.3); }
+        .val-big-badge.bounce { opacity: 1; transform: scale(1); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.5); }
+
+        /* --- THREE PART COMPLETE CONSOLIDATION ENGINE STYLING --- */
+        .c-v7-wrap { display: grid; grid-template-columns: 30% 5% 30% 5% 30%; width: 100%; align-items: center; justify-items: center; box-sizing: border-box; padding: 0 10px; }
+        .c-v7-panel { background: #1b2438; border: 1px solid #486080; border-radius: 14px; padding: 14px; box-sizing: border-box; min-height: 230px; width: 100%; text-align: left; }
+        .c-v7-panel h2 { margin: 0 0 10px; font-size: 14px; color: #8fd3ff; font-weight: 700; }
+        .c-v7-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .c-v7-tbl { font-size: 11px; }
+        .c-v7-tbl b { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px; }
+        .c-v7-tbl table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .c-v7-tbl td { border: 1px solid #445; padding: 2px; background: #0b1020; color: #fff; }
+        .c-v7-tbl tr { opacity: 0; transition: opacity .25s; }
+        
+        .c-v7-line { width: 100%; height: 3px; background: #5b6f8d; position: relative; }
+        .c-v7-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #39bdf8; top: -2px; opacity: 0; }
+        
+        .c-v7-dot.active-flow { opacity: 1; }
+        .c-v7-dot.f1 { animation: v7Line1Anim 0.5s linear infinite; }
+        .c-v7-dot.f2 { animation: v7Line2Anim 0.5s linear infinite; }
+        @keyframes v7Line1Anim { 0% { left: 0%; } 100% { left: 100%; } }
+        @keyframes v7Line2Anim { 0% { left: 0%; } 100% { left: 100%; } }
+
+        #c-v7-calc { font-size: 11px; background: #0f172a; border: 1px solid #334155; padding: 8px; border-radius: 6px; margin-bottom: 10px; min-height: 60px; text-align: left; }
+        #c-v7-ver { font-size: 11px; color: var(--accent-green); max-height: 90px; overflow-y: auto; line-height: 1.5; text-align: left; }
+
+        .c-v7-final-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .c-v7-final-table th { background: #151f32; border: 1px solid #486080; padding: 4px; color: #94a3b8; text-align: left; }
+        .c-v7-final-table td { border: 1px solid #445; padding: 4px; background: #0b1020; color: #fff; opacity: 0; transition: opacity 0.3s ease; }
+
+        /* --- GOVERNANCE CANVAS LINE --- */
+        .gov-workflow-canvas { width: 100%; display: flex; justify-content: space-around; align-items: center; position: relative; height: 100px; }
+        .gov-connecting-line { position: absolute; height: 3px; background-color: #334155; left: 100px; right: 100px; top: 40px; z-index: 1; }
+        .gov-gate-node { display: flex; flex-direction: column; align-items: center; width: 140px; z-index: 2; position: relative; }
+        .gov-indicator-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #0f172a; position: relative; margin-bottom: 8px; z-index: 3; transition: background-color 0.4s ease-in-out; }
+        .gov-ring-spinner { position: absolute; top: -5px; left: -5px; width: 54px; height: 54px; border: 2px dashed var(--accent-blue); border-radius: 50%; box-sizing: border-box; pointer-events: none; opacity: 0; }
+        .gov-status-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; height: 16px; }
+        .gov-gate-title { font-size: 12px; color: var(--text-main); font-weight: bold; margin-bottom: 4px; }
+        .gov-transit-file { position: absolute; font-size: 14px; top: 31px; left: 105px; opacity: 0; z-index: 4; pointer-events: none; }
+
+        .g1-circle { animation: gate1CircleLoop 6s infinite ease-in-out; }
+        .g1-text::after { content: 'Waiting'; animation: gate1TextLoop 6s infinite ease-in-out; }
+        .g1-ring { animation: gateRing1Loop 6s infinite linear; }
+        .g2-circle { animation: gate2CircleLoop 6s infinite ease-in-out; }
+        .g2-text::after { content: 'Waiting'; animation: gate2TextLoop 6s infinite ease-in-out; }
+        .g2-ring { animation: gateRing2Loop 6s infinite linear; }
+        .gov-transit-file { animation: fileTransitLoop 6s infinite linear; }
+
+        @keyframes gate1CircleLoop { 0%, 16.66% { background-color: var(--accent-red); } 16.67%, 33.32% { background-color: var(--accent-amber); } 33.33%, 100% { background-color: var(--accent-green); } }
+        @keyframes gate1TextLoop { 0%, 16.66% { content: 'Waiting'; color: var(--accent-red); } 16.67%, 33.32% { content: 'Validating'; color: var(--accent-amber); } 33.33%, 100% { content: 'Passed ✓'; color: var(--accent-green); } }
+        @keyframes gateRing1Loop { 0% { opacity: 1; transform: rotate(0deg); } 33.32% { opacity: 1; transform: rotate(360deg); } 33.33%, 100% { opacity: 0; transform: rotate(360deg); } }
+        @keyframes fileTransitLoop { 0%, 49.9% { left: 105px; opacity: 0; } 50% { left: 105px; opacity: 1; } 58% { left: 375px; opacity: 1; } 59.9%, 100% { left: 375px; opacity: 0; } }
+        @keyframes gate2CircleLoop { 0%, 66.66% { background-color: var(--accent-red); } 66.67%, 83.32% { background-color: var(--accent-amber); } 83.33%, 100% { background-color: var(--accent-green); } }
+        @keyframes gate2TextLoop { 0%, 66.66% { content: 'Waiting'; color: var(--accent-red); } 66.67%, 83.32% { content: 'Validating'; color: var(--accent-amber); } 83.33%, 100% { content: 'Passed ✓'; color: var(--accent-green); } }
+        @keyframes gateRing2Loop { 0%, 49.9% { opacity: 0; transform: rotate(0deg); } 50% { opacity: 1; transform: rotate(0deg); } 83.32% { opacity: 1; transform: rotate(360deg); } 83.33%, 100% { opacity: 0; transform: rotate(360deg); } }
+
+        /* --- SPREADSHEET BUILDER --- */
+        .sheet-container { width: 100%; background-color: #0f172a; border: 1px solid var(--sheet-border); border-radius: 6px; overflow: hidden; }
+        .sheet-header { background-color: #1e293b; padding: 8px 12px; font-size: 11px; font-weight: bold; border-bottom: 1px solid var(--sheet-border); display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); }
+        .sheet-status-badge { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; transition: all 0.3s ease; }
+        .sheet-status-badge.complete { background: rgba(74, 222, 128, 0.15); color: var(--accent-green); }
+        .sheet-grid { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+        .sheet-grid th { background-color: #151f32; color: var(--text-muted); padding: 6px 10px; font-weight: 600; border: 1px solid var(--sheet-border); }
+        .sheet-grid td { padding: 5px 10px; border: 1px solid var(--sheet-border); color: var(--text-main); opacity: 0; transform: translateY(2px); transition: all 0.4s ease; }
+        .sheet-grid tr.visible td { opacity: 1; transform: translateY(0); }
+        
+        .row-total { font-weight: bold; color: var(--accent-blue) !important; background-color: rgba(56, 189, 248, 0.02); }
+        .row-net { font-weight: bold; color: var(--accent-green) !important; background-color: rgba(74, 222, 128, 0.04); }
+
+        .mini-pulse { font-size: 32px; animation: miniPulse 1.5s infinite ease-in-out; }
+        @keyframes miniPulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; color: var(--accent-blue); } }
+        .mini-track-flow { width: 80%; height: 2px; background: #334155; position: relative; }
+        .mini-track-flow::after { content: '📄'; position: absolute; top: -12px; left: 0; font-size: 14px; animation: miniFlow 2s infinite linear; }
+        @keyframes miniFlow { 0% { left: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+        .mini-multi-flow { display: flex; flex-direction: column; gap: 15px; width: 70%; }
+        .mini-multi-flow .sub-line { height: 2px; background: #334155; position: relative; width: 100%; }
+        .mini-multi-flow .sub-line::after { content: '📊'; position: absolute; top: -10px; left: 0; font-size: 11px; animation: miniFlow 2.5s infinite ease-in-out; }
+        .mini-multi-flow .sub-line:nth-child(2)::after { content: '📜'; animation-delay: 0.4s; }
+        .mini-multi-flow .sub-line:nth-child(3)::after { content: '📈'; animation-delay: 0.8s; }
+
+        .footer-note { text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Workiva Automation</h1>
+
+    <div class="container">
+        <div class="pipeline-card" id="chain2">
+            <h2 class="pipeline-header">Consolidated Financial Reporting</h2>
+            <div class="pipeline-desc">Retrieves current and comparative financial data, validates each processing stage through governance gates, applies FSLI mapping and consolidation rules, performs aggregation and rounding, and publishes the final Balance Sheet and Income Statement to Workiva.</div>
+            
+            <div class="canvas">
+                <div class="track" style="height:4px; top: calc(50% + 4px); left: 40px; right: 40px;"></div>
+                <div class="c2-one-time-auth-signal"></div>
+                
+                <div class="packet packet-data1" id="c2-file1">📊</div>
+                <div class="packet packet-data2" id="c2-file2">📜</div>
+                <div class="packet packet-out">✨</div>
+
+                <div class="node" data-node="c2_auth" style="margin-top:20px;">
+                    <div class="icon-box">
+                        <span class="auth-inner-icon">🔑</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node1"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node1"></div>
+                    </div>
+                    <div class="node-label">Authentication</div>
+                </div>
+
+                <div class="node" data-node="c2_pull" style="margin-top:20px;">
+                    <div class="icon-box">
+                        <span class="auth-inner-icon">📥</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node2"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node2"></div>
+                    </div>
+                    <div class="node-label">Data Ingestion Engine</div>
+                </div>
+
+                <div class="node" data-node="c2_gov" style="margin-top:20px;">
+                    <div class="icon-box">
+                        <span class="auth-inner-icon">🚧</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node3"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node3"></div>
+                    </div>
+                    <div class="node-label">Validation Layer</div>
+                </div>
+
+                <div class="node" data-node="c2_map" style="margin-top:20px;">
+                    <div class="icon-box">
+                        <span class="auth-inner-icon">🗺️</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node4"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node4"></div>
+                    </div>
+                    <div class="node-label">FSLI Mapping</div>
+                </div>
+
+                <div class="node" data-node="c2_engine" style="margin-top:20px;">
+                    <div class="icon-box">
+                        <span class="auth-inner-icon">⚙️</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node5"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node5"></div>
+                    </div>
+                    <div class="node-label">Consolidation Engine</div>
+                </div>
+
+                <div class="node" data-node="c2_val_engine" style="margin-top:20px;">
+                    <div class="icon-box">
+                        <span class="auth-inner-icon">🔬</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node6"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node6"></div>
+                    </div>
+                    <div class="node-label">Validation Engine</div>
+                </div>
+
+                <div class="node" data-node="c2_pub" style="margin-top:20px;">
+                    <div class="icon-box" id="chain2-dest-box">
+                        <span class="auth-inner-icon">🖥️</span>
+                        <div class="auth-ring-container"><div class="auth-ring-dots" id="dots-node7"></div><div class="auth-ring-mask"></div></div>
+                        <div class="auth-success-box" id="success-node7"></div>
+                    </div>
+                    <div class="node-label">Publishing Destination</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note">Hover or click any node layout tile to progressively isolate underlying pipeline actions.</div>
+
+    <div class="popup-overlay" id="node-popup">
+        <div class="popup-card" id="popup-main-card">
+            <button class="popup-close" id="popup-close-btn">&times;</button>
+            <div class="popup-title" id="pop-title">Node Title</div>
+            <div class="popup-animation-pane" id="pop-anim-container"></div>
+            <p class="popup-desc" id="pop-desc">Description paragraph text details go here.</p>
+        </div>
+    </div>
+
+    <script>
+        const popupRegistry = {
+            c2_auth: { title: "🔑 Authentication & Init", description: "Performs secure token validation checks and automated configuration map resolves. This setup step verifies connections and sets up systemic access parameters before downstream mapping begins.", hasAnim: true, animType: "pulse" },
+            c2_pull: { title: "📥 Data Ingestion Engine", description: "Orchestrates parallel ingestion tracks fetching Comparative Balance Sheets, Comparative Income Statements, and Current Period entity data concurrently to guarantee process performance.", hasAnim: true, animType: "multiflow" },
+            c2_gov: { title: "🚧 Fail-Fast Validation Layer", description: "Enforces dual protection checkpoints. Gate 1 handles pre-flight validation blocks, while Gate 2 cross-audits target item record balances with a clean, unbroken connecting line track between them.", hasAnim: true, animType: "gov-dual" },
+            c2_map: { title: "🗺️ Financial Statement Line Item Mapping", description: "Applies counterparty structural mapping configurations and resolves ledger account relationships using database queries to cleanly map entity entries into centralized financial line frameworks.", hasAnim: true, animType: "flow" },
+            c2_engine: { title: "⚙️ Consolidation Engine", description: "Aggregates financial accounts across legal entities, evaluates rounding rules, and integrates manual journal adjustments to build consistent consolidated balanced output datasets.", hasAnim: true, animType: "v7-demo-embed" },
+            c2_val_engine: { title: "🔬 Validation Engine", description: "Performs deep arithmetic checks on data packages to safeguard the integrity of reporting sheets. Validates dual-entry accounting accuracy sequentially before output materialization.", hasAnim: true, animType: "realtime-val" },
+            c2_pub: { title: "🖥️ Publishing Destination", description: "Materializes and exports balanced datasets dynamically row-by-row into a target 10-row Workiva Sheet, filling exactly 1 row per second to showcase live automation execution.", hasAnim: true, animType: "sheet-gen" }
+        };
+
+        const popupEl = document.getElementById('node-popup');
+        const cardEl = document.getElementById('popup-main-card');
+        const popTitle = document.getElementById('pop-title');
+        const popAnimContainer = document.getElementById('pop-anim-container');
+        const popDesc = document.getElementById('pop-desc');
+        const closeBtn = document.getElementById('popup-close-btn');
+        
+        let sheetInterval = null;
+        let validationTimeoutIds = [];
+        let cV7Intervals = [];
+
+        function openModal(nodeKey) {
+            const data = popupRegistry[nodeKey];
+            if (!data) return;
+
+            if (sheetInterval) clearInterval(sheetInterval);
+            validationTimeoutIds.forEach(id => clearTimeout(id));
+            validationTimeoutIds = [];
+            cV7Intervals.forEach(id => clearInterval(id));
+            cV7Intervals = [];
+
+            popTitle.innerText = data.title;
+            popDesc.innerText = data.description;
+            popAnimContainer.innerHTML = "";
+
+            if (data.animType === "v7-demo-embed") {
+                cardEl.classList.add('expanded-large');
+            } else {
+                cardEl.classList.remove('expanded-large');
+            }
+
+            if (data.hasAnim) {
+                popAnimContainer.style.display = "flex";
+                if (data.animType === "pulse") {
+                    popAnimContainer.innerHTML = '<div class="mini-pulse">🔑</div>';
+                } else if (data.animType === "flow") {
+                    popAnimContainer.innerHTML = '<div class="mini-track-flow"></div>';
+                } else if (data.animType === "v7-demo-embed") {
+                    popAnimContainer.innerHTML = `
+                        <div class="c-v7-wrap">
+                            <div class="c-v7-panel">
+                                <h2>Source Entities</h2>
+                                <div id="v7-grid" class="c-v7-grid"></div>
+                            </div>
+                            <div class="c-v7-line"><div class="c-v7-dot f1" id="line1-dot"></div></div>
+                            <div class="c-v7-panel">
+                                <h2>Calculation Pipeline</h2>
+                                <div id="c-v7-calc"><b>Current Calculation</b></div>
+                                <div id="c-v7-ver"><b>Verified Operations:</b><br></div>
+                            </div>
+                            <div class="c-v7-line"><div class="c-v7-dot f2" id="line2-dot"></div></div>
+                            <div class="c-v7-panel">
+                                <h2>Consolidated Trial Balance</h2>
+                                <table class="c-v7-final-table">
+                                    <thead>
+                                        <tr><th>Account</th><th>Amount</th></tr>
+                                    </thead>
+                                    <tbody id="v7-final-body">
+                                        <tr id="v7-f-0"><td>Cash</td><td>3,900</td></tr>
+                                        <tr id="v7-f-1"><td>Inventory</td><td>2,800</td></tr>
+                                        <tr id="v7-f-2"><td>Assets</td><td>6,700</td></tr>
+                                        <tr id="v7-f-3"><td>Loan</td><td>2,150</td></tr>
+                                        <tr id="v7-f-4"><td>Equity</td><td>4,550</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const comps = [['US',[['Cash',1200],['Inv',800],['Assets',2000],['Loan',600],['Eq',1400]]],['India',[['Cash',900],['Inv',700],['Assets',1600],['Loan',500],['Eq',1100]]],['France',[['Cash',1000],['Inv',600],['Assets',1600],['Loan',550],['Eq',1050]]],['Japan',[['Cash',800],['Inv',700],['Assets',1500],['Loan',500],['Eq',1000]]]];
+                    const sums = [['Cash','1200+900+1000+800',3900],['Inventory','800+700+600+700',2800],['Assets','2000+1600+1600+1500',6700],['Loan','600+500+550+500',2150],['Equity','1400+1100+1050+1000',4550]];
+                    const v7Grid = document.getElementById('v7-grid');
+                    const cV7Calc = document.getElementById('c-v7-calc');
+                    const cV7Ver = document.getElementById('c-v7-ver');
+                    const dot1 = document.getElementById('line1-dot');
+                    const dot2 = document.getElementById('line2-dot');
+
+                    function buildV7Node(idx) {
+                        if (idx >= comps.length) {
+                            dot1.classList.add('active-flow');
+                            let dot1Count = 0;
+                            let dot1Interval = setInterval(() => {
+                                dot1Count++;
+                                if(dot1Count >= 5) {
+                                    clearInterval(dot1Interval);
+                                    dot1.classList.remove('active-flow');
+                                    let tid = setTimeout(calcV7Run, 400);
+                                    validationTimeoutIds.push(tid);
+                                }
+                            }, 500);
+                            cV7Intervals.push(dot1Interval);
+                            return;
+                        }
+                        let d = document.createElement('div');
+                        d.className = 'c-v7-tbl';
+                        d.innerHTML = '<b>Lazard ' + comps[idx][0] + '</b><table><tbody></tbody></table>';
+                        v7Grid.appendChild(d);
+                        let tb = d.querySelector('tbody'), r = 0;
+                        let t = setInterval(() => {
+                            let tr = document.createElement('tr');
+                            tr.innerHTML = '<td>' + comps[idx][1][r][0] + '</td><td>' + comps[idx][1][r][1] + '</td>';
+                            tb.appendChild(tr);
+                            requestAnimationFrame(() => tr.style.opacity = 1);
+                            r++;
+                            if (r >= comps[idx][1].length) {
+                                clearInterval(t);
+                                let tid = setTimeout(() => buildV7Node(idx + 1), 150);
+                                validationTimeoutIds.push(tid);
+                            }
+                        }, 80);
+                        cV7Intervals.push(t);
+                    }
+
+                    function calcV7Run() {
+                        let i = 0;
+                        function n() {
+                            if (i >= sums.length) {
+                                dot2.classList.add('active-flow');
+                                let dot2Count = 0;
+                                let dot2Interval = setInterval(() => {
+                                    dot2Count++;
+                                    if(dot2Count >= 4) {
+                                        clearInterval(dot2Interval);
+                                        dot2.classList.remove('active-flow');
+                                        finishV7TableRows();
+                                    }
+                                }, 500);
+                                cV7Intervals.push(dot2Interval);
+                                return;
+                            }
+                            cV7Calc.innerHTML = '<b>Processing</b><div style="margin-top:4px;color:var(--accent-blue);">' + sums[i][0] + '<br>' + sums[i][1] + ' = ' + sums[i][2] + '</div>';
+                            let tid = setTimeout(() => {
+                                cV7Ver.innerHTML += '✔ ' + sums[i][0] + ' = ' + sums[i][2] + '<br>';
+                                i++;
+                                n();
+                            }, 550);
+                            validationTimeoutIds.push(tid);
+                        }
+                        n();
+                    }
+
+                    function finishV7TableRows() {
+                        let rowIdx = 0;
+                        let t = setInterval(() => {
+                            if (rowIdx >= sums.length) {
+                                clearInterval(t);
+                                return;
+                            }
+                            const finalRowCells = document.querySelectorAll(`#v7-f-${rowIdx} td`);
+                            finalRowCells.forEach(cell => cell.style.opacity = '1');
+                            rowIdx++;
+                        }, 250);
+                        cV7Intervals.push(t);
+                    }
+
+                    buildV7Node(0);
+
+                } else if (data.animType === "realtime-val") {
+                    popAnimContainer.innerHTML = `
+                        <div class="val-engine-box">
+                            <div class="val-row" id="vr-1"><span>Row Count Verification</span><span class="val-check-mark" id="vc-1">✔</span></div>
+                            <div class="val-row" id="vr-2"><span>Sum of Debit Balance</span><span class="val-check-mark" id="vc-2">✔</span></div>
+                            <div class="val-row" id="vr-3"><span>Sum of Credit Balance</span><span class="val-check-mark" id="vc-3">✔</span></div>
+                            <div class="val-row" id="vr-4"><span>Account Balance Mapping</span><span class="val-check-mark" id="vc-4">✔</span></div>
+                            <div class="val-row" id="vr-5"><span>Trial Balance Invariant check</span><span class="val-check-mark" id="vc-5">✔</span></div>
+                            <div class="val-row" id="vr-6"><span>Missing Accounts Audit</span><span class="val-check-mark" id="vc-6">✔</span></div>
+                            <div class="val-row" id="vr-7"><span>Duplicate Records Elimination</span><span class="val-check-mark" id="vc-7">✔</span></div>
+                            <div class="val-divider" id="val-div-line"></div>
+                            <div class="val-final-equation" id="val-eq-box">
+                                <span>Assets = Liabilities + Equity</span>
+                                <span class="val-big-badge" id="val-seal">✅</span>
+                            </div>
+                        </div>
+                    `;
+
+                    const runValidationCheck = (index) => {
+                        if (index <= 7) {
+                            const row = document.getElementById(`vr-${index}`);
+                            const check = document.getElementById(`vc-${index}`);
+                            if(row && check) {
+                                row.classList.add('revealed', 'active-checking');
+                                let tid1 = setTimeout(() => {
+                                    row.classList.remove('active-checking');
+                                    check.classList.add('checked');
+                                    runValidationCheck(index + 1);
+                                }, 450);
+                                validationTimeoutIds.push(tid1);
+                            }
+                        } else {
+                            const divider = document.getElementById('val-div-line');
+                            const eqBox = document.getElementById('val-eq-box');
+                            const seal = document.getElementById('val-seal');
+                            
+                            let tid2 = setTimeout(() => { divider.style.width = '100%'; }, 200);
+                            let tid3 = setTimeout(() => { eqBox.classList.add('visible'); }, 600);
+                            let tid4 = setTimeout(() => { seal.classList.add('bounce'); }, 1000);
+                            
+                            validationTimeoutIds.push(tid2, tid3, tid4);
+                        }
+                    };
+                    runValidationCheck(1);
+
+                } else if (data.animType === "multiflow") {
+                    popAnimContainer.innerHTML = '<div class="mini-multi-flow"><div class="sub-line"></div><div class="sub-line"></div><div class="sub-line"></div></div>';
+                } else if (data.animType === "gov-dual") {
+                    popAnimContainer.innerHTML = `
+                        <div class="gov-workflow-canvas">
+                            <div class="gov-connecting-line"></div>
+                            <div class="gov-transit-file">📄</div>
+                            <div class="gov-gate-node">
+                                <div class="gov-gate-title">Gate 1</div>
+                                <div class="gov-indicator-circle g1-circle"><div class="gov-ring-spinner g1-ring"></div></div>
+                                <div class="gov-status-label g1-text"></div>
+                            </div>
+                            <div class="gov-gate-node">
+                                <div class="gov-gate-title">Gate 2</div>
+                                <div class="gov-indicator-circle g2-circle"><div class="gov-ring-spinner g2-ring"></div></div>
+                                <div class="gov-status-label g2-text"></div>
+                            </div>
+                        </div>
+                    `;
+                } else if (data.animType === "sheet-gen") {
+                    popAnimContainer.innerHTML = `
+                        <div class="sheet-container">
+                            <div class="sheet-header">
+                                <span>CHFR002_Consolidated_Report.wvh</span>
+                                <span class="sheet-status-badge" id="sheet-badge">Compiling (10s)</span>
+                            </div>
+                            <table class="sheet-grid">
+                               <thead>
+                                   <tr><th>Line Item</th><th>Q1 Actual</th><th>Q2 Actual</th></tr>
+                               </thead>
+                               <tbody id="sheet-rows-body">
+                                   <tr><td>01. Gross Revenue</td><td>$2,450,000</td><td>$2,890,000</td></tr>
+                                   <tr><td>02. Cost of Goods Sold (COGS)</td><td>($980,000)</td><td>($1,120,000)</td></tr>
+                                   <tr class="row-total"><td>03. Gross Margin</td><td>$1,470,000</td><td>$1,770,000</td></tr>
+                                   <tr><td>04. Research & Development</td><td>($320,000)</td><td>($350,000)</td></tr>
+                                   <tr><td>05. Sales & Marketing</td><td>($410,000)</td><td>($440,000)</td></tr>
+                                   <tr><td>06. General & Administrative</td><td>($210,000)</td><td>($230,000)</td></tr>
+                                   <tr class="row-total"><td>07. Total Operating Expenses</td><td>($940,000)</td><td>($1,020,000)</td></tr>
+                                   <tr><td>08. Operating Income (EBIT)</td><td>$530,000</td><td>$750,000</td></tr>
+                                   <tr><td>09. Income Tax Provision</td><td>($110,000)</td><td>($150,000)</td></tr>
+                                   <tr class="row-net"><td>10. Net Consolidated Income</td><td>$420,000</td><td>$600,000</td></tr>
+                               </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    const rows = document.querySelectorAll('#sheet-rows-body tr');
+                    const badge = document.getElementById('sheet-badge');
+                    let currentRow = 0;
+
+                    function showNextRow() {
+                        if (currentRow < rows.length) {
+                            rows[currentRow].classList.add('visible');
+                            badge.innerText = `Compiling Row ${currentRow + 1}/10`;
+                            currentRow++;
+                        } else {
+                            clearInterval(sheetInterval);
+                            badge.innerText = "Ready to Publish ✓";
+                            badge.classList.add('complete');
+                            setTimeout(() => {
+                                if(popupEl.classList.contains('active') && data.animType === "sheet-gen") {
+                                    rows.forEach(r => r.classList.remove('visible'));
+                                    badge.classList.remove('complete');
+                                    currentRow = 0;
+                                    sheetInterval = setInterval(showNextRow, 1000);
+                                    showNextRow();
+                                }
+                            }, 3000);
+                        }
+                    }
+
+                    sheetInterval = setInterval(showNextRow, 1000);
+                    showNextRow();
+                }
+            } else {
+                popAnimContainer.style.display = "none";
+            }
+
+            popupEl.classList.add('active');
+        }
+
+        function closeModal() {
+            popupEl.classList.remove('active');
+            cardEl.classList.remove('expanded-large');
+            if (sheetInterval) clearInterval(sheetInterval);
+            validationTimeoutIds.forEach(id => clearTimeout(id));
+            cV7Intervals.forEach(id => clearInterval(id));
+        }
+
+        document.querySelectorAll('.node').forEach(node => {
+            const nodeKey = node.getAttribute('data-node');
+            node.addEventListener('click', () => openModal(nodeKey));
+        });
+        closeBtn.addEventListener('click', closeModal);
+        popupEl.addEventListener('click', (e) => { if (e.target === popupEl) closeModal(); });
+
+        // --- CHAIN 2 ASSET LIFECYCLE CONTROLLER ---
+        const f1 = document.getElementById('c2-file1');
+        const f2 = document.getElementById('c2-file2');
+
+        setInterval(() => {
+            f1.innerText = '📊';
+            f2.innerText = '📜';
+            f2.style.visibility = 'visible';
+            
+            setTimeout(() => {
+                f1.innerText = '📋'; 
+                f2.style.visibility = 'hidden'; 
+            }, 11000);
+        }, 14000);
+    </script>
+</body>
+</html>
